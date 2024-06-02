@@ -1,28 +1,28 @@
 {
     "env": {
-      "browser": true,
-      "es6": true,
-      "node": true,
-      "mocha": true
+        "browser": true,
+        "es6": true,
+        "node": true,
+        "mocha": true
     },
     "globals": {
-      "Atomics": "readonly",
-      "SharedArrayBuffer": "readonly"
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
     },
     "parserOptions": {
-      "ecmaVersion": 2020,
-      "sourceType": "module"
+        "ecmaVersion": 2020,
+        "sourceType": "module"
     },
     "rules": {
-      "indent": ["warn", 4],
-      "linebreak-style": ["error", "unix"],
-      "quotes": ["error", "single"],
-      "semi": ["error", "always"],
-      "no-console": 0,
-      "comma-dangle": [0],
-      "arrow-parens": [0],
-      "object-curly-spacing": ["warn", "always"],
-      "array-bracket-spacing": ["warn", "always"],
-      "import/prefer-default-export": [0]
+        "indent": ["warn", 4],
+        "linebreak-style": ["error", "unix"],
+        "quotes": ["error", "single"],
+        "semi": ["error", "always"],
+        "no-console": 0,
+        "comma-dangle": [0],
+        "arrow-parens": [0],
+        "object-curly-spacing": ["warn", "always"],
+        "array-bracket-spacing": ["warn", "always"],
+        "import/prefer-default-export": [0]
     }
-  }
+}
