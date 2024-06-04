@@ -1,9 +1,9 @@
 import { Router } from 'express';
 const router = Router();
 
-/* GET home page. */
+/* GET Server Status. */
 router.get('/', function (req, res, next) {
-    res.render('index', { title: 'Express' });
+    res.send('Server is running...');
 });
 
 export default router;
