@@ -1,6 +1,7 @@
 import browser from '../../utils/Browser.js';
+import { EventRepository } from '../../repository/event.repository.js';
 
-export async function searchEarthquakeEvents({ fromDate, toDate }) {
+export async function scrapeEarthquakeEvents({ fromDate, toDate, create = true }) {
     let page = null;
 
     try {
@@ -26,9 +27,6 @@ export async function searchEarthquakeEvents({ fromDate, toDate }) {
 
         await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('body > table:nth-child(4) > tbody > tr > td > table:nth-child(3)');
-
-        // log the url page
-        let url = page.url();
         
         const result = await page.evaluate(() => {
             const pagination = document.querySelector('body > table:nth-child(4) > tbody > tr > td > table:nth-child(3)');
@@ -54,22 +52,37 @@ export async function searchEarthquakeEvents({ fromDate, toDate }) {
         });
 
         if(result.error) return result;
+        else if (!result.quantity) return { error: true, status: 500, data: 'No se encontraron resultados' };
 
         const events = [];
 
-        for(let i = 1; i <= result.pages; i++) {
-            const tableRows = await getTableRowsData(page);
-            events.push(...tableRows);
-
-            if(i < result.pages) {
-                await page.goto(`http://contenidos.inpres.gob.ar/sismos_consultados.php?pagina=${i + 1}&totpag=${result.pages}&ctd=${result.quantity}`, { waitUntil: 'domcontentloaded' });
+        if(result.pages > 0) {
+            for(let i = 1; i <= result.pages; i++) {
+                const tableRows = await getTableRowsData(page);
+                events.push(...tableRows);
+    
+                if(i < result.pages) {
+                    await page.goto(`http://contenidos.inpres.gob.ar/sismos_consultados.php?pagina=${i + 1}&totpag=${result.pages}&ctd=${result.quantity}`, { waitUntil: 'domcontentloaded' });
+                }
             }
         }
+        else {
+            const tableRows = await getTableRowsData(page);
+            events.push(...tableRows);
+        }
+
+        await page.close();
+
+        if(create)
+            await EventRepository.insertManyEarthquakeEvents(events);
 
         return { error: false, data: events };            
     } 
     catch (error) {
         console.error(error);
+
+        if(page) await page.close();
+
         return { error: true, status: 500, data: error.message, message: 'Error en la petición' };
     }
 }
@@ -86,10 +99,12 @@ const getTableRowsData = async (page) => {
 
                 if (cells.length < 9 || i < 2) return;
 
+                const date = cells[1].textContent.trim();
+                const time = cells[2].textContent.trim();
+                const dateAndTime = `${date} ${time}`;
+
                 const event = {
-                    id: cells[0].textContent.trim(),
-                    date: cells[1].textContent.trim(),
-                    time: cells[2].textContent.trim(),                        
+                    datetime: dateAndTime,                        
                     lat: cells[3].textContent.trim(),
                     long: cells[4].textContent.trim(),
                     depth: cells[5].textContent.trim(),

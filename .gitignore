@@ -63,3 +63,6 @@ db.env
 
 # json files
 json/*
+
+# db files
+db/*

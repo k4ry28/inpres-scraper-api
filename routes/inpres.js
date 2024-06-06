@@ -1,28 +1,48 @@
 import { Router } from 'express';
-import { searchEarthquakeEvents } from '../services/inpres/searchEarthquakeEvents.service.js';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat.js';
-dayjs.extend(customParseFormat);
+import { scrapeEarthquakeEvents } from '../services/inpres/scrapeEarthquakeEvents.service.js';
+import { searchEarthquakeEvents } from '../services/db/searchEarthquakeEvents.service.js';
+import { dateFromToFormat, validateQueryDates } from '../utils/DateFormat.js';
 
 const router = Router();
 
-/* GET Earthquake Events. 
+/* GET Earthquake Events directly from INPRES. 
 
-    @query fromDate: Date
-    @query toDate: Date    
+    @query fromDate: Date (dd/mm/yyyy)
+    @query toDate: Date (dd/mm/yyyy)  
 */
 router.get('/events', async (req, res, next) => {
     const fromDate = req.query.fromDate;
     const toDate = req.query.toDate;
 
-    if(!fromDate || !toDate) 
-        return res.status(400).json({ error: true, status: 400, data: 'Missing parameters', message: 'Missing parameters' });
-    else if(!dayjs(fromDate, 'DD/MM/YYYY', true).isValid() || !dayjs(toDate, 'DD/MM/YYYY', true).isValid()) 
-        return res.status(400).json({ error: true, status: 400, data: 'The date format must be DD/MM/YYYY', message: 'Invalid parameters' });
-    else if(dayjs(fromDate).isAfter(toDate)) 
-        return res.status(400).json({ error: true, status: 400, data: 'The from date must be before the to date', message: 'Invalid parameters' });
+    const validation = validateQueryDates({ fromDate, toDate });
+
+    if(validation.error) 
+        return res.status(validation.status).json(validation);
     
-    const result = await searchEarthquakeEvents({ fromDate, toDate });
+    const result = await scrapeEarthquakeEvents({ fromDate, toDate, create: false });
+
+    if(result.error) 
+        return res.status(result.status).json(result);
+    else
+        return res.status(200).json(result.data);
+});
+
+
+/* GET Earthquake Events from DB, if they don't exist get them from INPRES and save them in DB. 
+
+    @query fromDate: Date (dd/mm/yyyy)
+    @query toDate: Date (dd/mm/yyyy)    
+*/
+router.get('/events/db', async (req, res, next) => {
+    const fromDate = req.query.fromDate;
+    const toDate = req.query.toDate;
+
+    const validation = validateQueryDates({ fromDate, toDate });
+
+    if(validation.error) 
+        return res.status(validation.status).json(validation);
+
+    const result = await searchEarthquakeEvents({ fromDate: dateFromToFormat(fromDate, 'init'), toDate: dateFromToFormat(toDate, 'end') });
 
     if(result.error) 
         return res.status(result.status).json(result);
